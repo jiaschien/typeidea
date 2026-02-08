@@ -7,11 +7,10 @@ from .models import Post, Category, Tag
 from typeidea.base_admin import BaseOwnerAdmin
 from typeidea.custom_site import custom_site
 
-
-class PostInline(admin.TabularInline):  # 
+class PostInline(admin.StackedInline):
 
     fields = ('title', 'desc')
-    extra = 1  # 
+    extra = 1
     model = Post
 
 
@@ -25,52 +24,57 @@ class CategoryAdmin(BaseOwnerAdmin):
         return obj.post_set.count()
 
     post_count.short_description = '文章数量'
-    
+
 
 @admin.register(Tag, site=custom_site)
-class TagAdmin(BaseOwnerAdmin):
+class TagAdmin(admin.ModelAdmin):
     list_display = ('name', 'status', 'created_time')
-    fields = ('name', 'status')
+    fields = ('name', 'status') 
 
 
 class CategoryOwnerFilter(admin.SimpleListFilter):
-    """ 自定义过滤器只展示当前用户分类 """
+    """自定义过滤器只展示当前用户分类"""
 
     title = '分类过滤器'
     parameter_name = 'owner_category'
 
     def lookups(self, request, model_admin):
-        return Category.objects.filter(owner=request.user).values_list('id', 'name')
+        return Category.objects.filter(owner=request.user).value_list('id', 'name')
 
     def queryset(self, request, queryset):
         category_id = self.value()
         if category_id:
-            return queryset.filter(category_id=self.value())
+            return queryset.fliter(category_id=self.value())
         return queryset
-
 
 @admin.register(Post, site=custom_site)
 class PostAdmin(BaseOwnerAdmin):
     form = PostAdminForm
     list_display = [
-        'title', 'category', 
-        'created_time', 'operator',
+        'title', 'category', 'status',
+        'created_time', 'operator'
     ]
-    list_display_links = []
+    list_display_liks = []
 
-    list_filter = [CategoryOwnerFilter]
+    list_fliter = [CategoryOwnerFilter, ]
     search_fields = ['title', 'category__name']
+    save_on_top = True
 
     actions_on_top = True
-    actions_on_bottom = True
-
-    actions_selection_counter = True
+    actions_on_botoom = True
 
     # 编辑页面
     save_on_top = True
 
-    exclude = ['owner',]
+    exclude = ['Owner']
     """
+    fields = (
+        ('category', 'title'),
+        'desc',
+        'status',
+        'content',
+        'tag',
+    )
     """
     fieldsets = (
         ('基础配置', {
@@ -80,19 +84,14 @@ class PostAdmin(BaseOwnerAdmin):
                 'status',
             ),
         }),
-
         ('内容', {
             'fields': (
                 'desc',
                 'content',
             ),
-        }),
-        ('额外信息', {
-            'classes': ('collapse',),
-            'fields': ('tag',),
         })
     )
-    # filter_horizontal = ('tag", )
+    # filter_horizontal = ('tag', )
     filter_vertical = ('tag', )
 
     def operator(self, obj):
@@ -104,6 +103,7 @@ class PostAdmin(BaseOwnerAdmin):
 
     class Media:
         css = {
-            'all': ("https://cdn.bootcss.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css",),
+            'all': ("https://cdn.bootcss.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css", ),
         }
-        js = ('https://cdn.bootcss.com/bootstrap/4.0.0-beta.2/js/bootstrap.bundle.js',)
+        js = ('https://cdn.bootcss.com/bootstrap/4.0.0-beta.2/js/bootstrap.bundle.js', )
+

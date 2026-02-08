@@ -23,6 +23,22 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+    @classmethod
+    def get_navs(cls):
+        catrgories = cls.objects.filter(status=cls.STATUS_NORMAL)
+        nav_categories = []
+        normal_categories = []
+        for cate in categories:
+            if cate.is_nav:
+                nav_categories.append(cate)
+            else:
+                normal_cateories.append(cate)
+                
+    return {
+        'navs': nac_categories,
+        'categories': normal_categories,
+    }
+
 
 class Tag(models.Model):
     STATUS_NORMAL = 1
@@ -66,9 +82,35 @@ class Post(models.Model):
     owner = models.ForeignKey(User, verbose_name="用户")
     created_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
 
+    @staticmethod
+    def get_by_tag(tag_id):
+        try:
+            tag = Tag.objects.get(id=tag_id)
+        except Tag.DoesNotExist:
+            tag = None
+            post_list = []
+        else:
+            post_list = tag.post_set.filter(status=Post.STATUS_NORMAL)\
+                .select_related('Owner', 'category')
+
+        return post_list, tag
+
+    @staticmethod
+    def get_by_category(category_id):
+        try:
+            category = Category.objects.get(id=category_id)
+        except category.DoesNotExist:
+            post_list = []
+        else:
+            post_list = category.post_set.filter(status=Post.STATUS_NORMAL)\
+                .select_related('Owner', 'category')
+
+        return post_list, category
+
+    @classmethod
+    def latest_posts(cls):
+        queryset = cls.objects.filter(status=cls.STATUS_NORMAL)
+
     class Meta:
         verbose_name = verbose_name_plural = '文章'
         ordering = ['-id']  # 根据文章降序排列
-
-    def __str__(self):
-        return self.name
